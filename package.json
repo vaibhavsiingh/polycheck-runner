@@ -1,0 +1,44 @@
+{
+  "name": "polycheck-runner",
+  "displayName": "Polycheck Runner",
+  "publisher": "your-name",
+  "version": "0.0.1",
+  "engines": { "vscode": "^1.60.0" },
+  "activationEvents": [
+    "onCommand:project1.openPolycheckPanel"
+  ],
+  "main": "./out/extension.js",
+  "contributes": {
+    "commands": [
+      {
+        "command": "project1.openPolycheckPanel",
+        "title": "Run Polycheck on File",
+        "category": "Polycheck"
+      }
+    ],
+    "menus": {
+      "explorer/context": [
+        {
+          "command": "project1.openPolycheckPanel",
+          "when": "resourceScheme == 'file'",
+          "group": "navigation"
+        }
+      ]
+    }
+  },
+  "files": [
+    "out/**",
+    "bin/**"
+  ],
+  "scripts": {
+    "vscode:prepublish": "npm run compile",
+    "compile": "tsc -p ./",
+    "watch": "tsc -watch -p ./"
+  },
+  "devDependencies": {
+    "typescript": "^4.0.0",
+    "@types/node": "^14.14.0",
+    "@types/vscode": "^1.60.0",
+    "vscode": "^1.1.37"
+  }
+}
