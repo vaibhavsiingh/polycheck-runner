@@ -5,7 +5,7 @@ import { runPolycheckWorkflow } from '../workflow/polycheck';
 
 // register the command to open the extensionw
 export function registerOpenPolycheckCommand(context: vscode.ExtensionContext): vscode.Disposable{
-    return vscode.commands.registerCommand('project1.openPolycheckPanel', (resource: vscode.Uri) => {
+    return vscode.commands.registerCommand('polycheck-runner.openPolycheckPanel', (resource: vscode.Uri) => {
         if (!resource || !resource.fsPath) {
         vscode.window.showErrorMessage('No file selected.');
         return;

@@ -1,17 +1,17 @@
 {
   "name": "polycheck-runner",
   "displayName": "Polycheck Runner",
-  "publisher": "your-name",
+  "publisher": "Vaibhav Singh",
   "version": "0.0.1",
   "engines": { "vscode": "^1.60.0" },
   "activationEvents": [
-    "onCommand:project1.openPolycheckPanel"
+    "onCommand:polycheck-runner.openPolycheckPanel"
   ],
   "main": "./out/extension.js",
   "contributes": {
     "commands": [
       {
-        "command": "project1.openPolycheckPanel",
+        "command": "polycheck-runner.openPolycheckPanel",
         "title": "Run Polycheck on File",
         "category": "Polycheck"
       }
@@ -19,7 +19,7 @@
     "menus": {
       "explorer/context": [
         {
-          "command": "project1.openPolycheckPanel",
+          "command": "polycheck-runner.openPolycheckPanel",
           "when": "resourceScheme == 'file'",
           "group": "navigation"
         }
