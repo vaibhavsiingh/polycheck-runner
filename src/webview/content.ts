@@ -1,13 +1,12 @@
 import * as vscode from 'vscode';
 
 // create the webview of the "Side panel"
-export function getWebviewHtml(webview: vscode.Webview, extensionUri: vscode.Uri, nonce: string, filePath: string): string {
+export function getWebviewHtml(webview: vscode.Webview, extensionUri: vscode.Uri, nonce: string, filePath: string, fileContent: string ): string {
   const esc = filePath.replace(/\\/g, '\\\\').replace(/`/g, '\\`');
   return `<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'nonce-${nonce}'; style-src 'unsafe-inline';">
   <style>
     /* Use VS Code theme variables when available */
     :root {
@@ -21,6 +20,8 @@ export function getWebviewHtml(webview: vscode.Webview, extensionUri: vscode.Uri
       --button-bg: var(--vscode-button-background, #007acc);
       --button-fg: var(--vscode-button-foreground, #ffffff);
       --button-hover-bg: var(--vscode-button-hoverBackground, #005a9e);
+      --button-disabled-bg: rgba(0, 122, 204, 0.4);
+      --button-disabled-fg: rgba(255, 255, 255, 0.4);
       --accent: var(--vscode-focusBorder, #007acc);
     }
 
@@ -88,6 +89,11 @@ export function getWebviewHtml(webview: vscode.Webview, extensionUri: vscode.Uri
       outline: 2px solid var(--accent);
       outline-offset: 2px;
     }
+    button:disabled {
+      background-color: var(--button-disabled-bg);
+      color: var(--button-disabled-fg);
+      cursor: not-allowed;
+    }
     #output {
       /* Use the editor background and foreground for better contrast */
       background-color: var(--vscode-editor-background, #1e1e1e);
@@ -127,23 +133,100 @@ export function getWebviewHtml(webview: vscode.Webview, extensionUri: vscode.Uri
   </div>
   <button id="runBtn">Run</button>
   <pre id="output"></pre>
-  <script nonce="${nonce}">
-    const vscode = acquireVsCodeApi();
-    console.log('Webview script loaded');
-    const btn = document.getElementById('runBtn');
-    if (!btn) console.error('runBtn not found');
-    else btn.addEventListener('click', () => {
-      console.log('Run clicked');
-      const pre = document.getElementById('preText')?.value || '';
-      const post = document.getElementById('postText')?.value || '';
-      vscode.postMessage({ command: 'runPolycheck', pre, post });
-      document.getElementById('output').textContent = 'Running...';
+<script>
+  const fileText = ${JSON.stringify(fileContent)};
+  const vscode = acquireVsCodeApi();
+  const output = document.getElementById('output');
+  const runBtn = document.getElementById('runBtn');
+  const preTA = document.getElementById('preText');
+  const postTA = document.getElementById('postText');
+
+  let parseTimer;
+  console.log("DEBUG: Reached Script");
+
+  async function doParse() {
+    console.log("DEBUG: Called doParse");
+    runBtn.disabled = true;
+    output.textContent = 'Parsing…';
+    vscode.postMessage({
+      command: 'parseRequest',
+      data: {
+        program: fileText,
+        precond: preTA.value,
+        postcond: postTA.value
+      }
     });
-    window.addEventListener('message', event => {
-      const msg = event.data;
-      if (msg.type === 'result') document.getElementById('output').textContent = msg.output;
-    });
-  </script>
+  }
+
+
+  function scheduleParse() {
+    clearTimeout(parseTimer);
+    parseTimer = setTimeout(doParse, 300);
+  }
+
+  // 1) parse on load
+  window.addEventListener('load', doParse);
+
+  // 2) live parse on edits
+  preTA.addEventListener('input', scheduleParse);
+  postTA.addEventListener('input', scheduleParse);
+
+  // 3) run verification
+  runBtn.addEventListener('click', async () => {
+    runBtn.disabled = true;
+    output.textContent = 'Verifying…';
+    const endpoint = 'http://localhost:3000/api/solver/Mona/verify';
+
+    try {
+      const res = await fetch(endpoint, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          program: fileText,
+          precond: preTA.value,
+          postcond: postTA.value
+        })
+      });
+
+      const result = await res.json();
+
+      if (result.answer && result.solverUsed) {
+        output.textContent =
+          "Solver: " + result.solverUsed + "<br><br>Result:<br>" + result.answer;
+      } else {
+        output.textContent = 'Unexpected response:<br>' + JSON.stringify(result, null, 2);
+      }
+
+    } catch (e) {
+      output.textContent = 'Verification failed: ' + e.message;
+    } finally {
+      runBtn.disabled = false;
+    }
+  });
+
+  window.addEventListener('message', (event) => {
+    const msg = event.data;
+    console.log("DEBUG: Received return message");
+    if (msg.type === 'parseResult') {
+      console.log("DEBUG: Received return message of correct type");
+      const result = msg.result;
+      if (msg.error) {
+        output.textContent = 'Parse failed: ' + msg.error;
+      } else {
+        const msgs = [];
+        if (result.parseErrProg) msgs.push('Program Error: ' + result.parseErrProg);
+        if (result.parseErrPre) msgs.push('Precondition Error: ' + result.parseErrPre);
+        if (result.parseErrPost) msgs.push('Postcondition Error: ' + result.parseErrPost);
+
+        output.textContent = msgs.length > 0 ? msgs.join('\\n') : '✓ No parse errors';
+        runBtn.disabled = msgs.length > 0;
+        console.log("DEBUG: msgs:", msgs, msgs.length);
+      }
+    }
+  });
+
+</script>
+
 </body>
 </html>`;
 }
