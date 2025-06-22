@@ -76,6 +76,34 @@ export function registerOpenPolycheckCommand(context: vscode.ExtensionContext): 
                         panel.webview.postMessage({ type: 'parseResult', error: errorMessage });
                     }
                 }
+                else if(message.command === 'useSolvers'){
+                    const solvers = [
+                        {id: "smtAltErgo", api: "SMTLib%20AltErgo"},
+                        {id: "cvc5", api: "SMTLib%20CVC5"},
+                        {id: "smtZ3", api: "SMTLib%20Z3"},
+                        {id: "altErgoSingle", api: "AltErgoSingle"},
+                        {id: "mona", api: "Mona"}
+                    ];
+
+                    console.log("DEBUG: message.data in the request code", message.data);
+                    
+                    for(const solver of solvers){
+                        const url = `http://localhost:3000/api/solver/${solver.api}/verify`;
+                        try {
+                        const res = await fetch(url, {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify(message.data)
+                        });
+                        const solverResult = await res.json();
+                        panel.webview.postMessage({ type: 'solverResult', solverId: solver.id, result: solverResult});
+                        } catch (err) {
+                        const errorMessage = (err instanceof Error) ? err.message : String(err);
+                        panel.webview.postMessage({ type: 'solverResult', solverId: solver.id, error: errorMessage });
+                        }
+                    }
+                    
+                }
             },
             undefined,
             context.subscriptions

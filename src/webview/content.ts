@@ -133,6 +133,16 @@ export function getWebviewHtml(webview: vscode.Webview, extensionUri: vscode.Uri
   </div>
   <button id="runBtn">Run</button>
   <pre id="output"></pre>
+  <div id="allResults">
+    <h3>Solver Results</h3>
+    <div id="solverResults">
+      <div><strong>SMTLib AltErgo:</strong> <pre id="res-smtAltErgo">Pending…</pre></div>
+      <div><strong>SMTLib CVC5:</strong> <pre id="res-cvc5">Pending…</pre></div>
+      <div><strong>SMTLib Z3:</strong> <pre id="res-smtZ3">Pending…</pre></div>
+      <div><strong>AltErgoSingle:</strong> <pre id="res-altErgoSingle">Pending…</pre></div>
+      <div><strong>Mona:</strong> <pre id="res-mona">Pending…</pre></div>
+    </div>
+  </div>
 <script>
   const fileText = ${JSON.stringify(fileContent)};
   const vscode = acquireVsCodeApi();
@@ -175,33 +185,14 @@ export function getWebviewHtml(webview: vscode.Webview, extensionUri: vscode.Uri
   runBtn.addEventListener('click', async () => {
     runBtn.disabled = true;
     output.textContent = 'Verifying…';
-    const endpoint = 'http://localhost:3000/api/solver/Mona/verify';
-
-    try {
-      const res = await fetch(endpoint, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          program: fileText,
-          precond: preTA.value,
-          postcond: postTA.value
-        })
-      });
-
-      const result = await res.json();
-
-      if (result.answer && result.solverUsed) {
-        output.textContent =
-          "Solver: " + result.solverUsed + "<br><br>Result:<br>" + result.answer;
-      } else {
-        output.textContent = 'Unexpected response:<br>' + JSON.stringify(result, null, 2);
+    vscode.postMessage({
+      command: 'useSolvers',
+      data: {
+        program: fileText,
+        precond: preTA.value,
+        postcond: postTA.value
       }
-
-    } catch (e) {
-      output.textContent = 'Verification failed: ' + e.message;
-    } finally {
-      runBtn.disabled = false;
-    }
+    });
   });
 
   window.addEventListener('message', (event) => {
@@ -222,6 +213,24 @@ export function getWebviewHtml(webview: vscode.Webview, extensionUri: vscode.Uri
         runBtn.disabled = msgs.length > 0;
         console.log("DEBUG: msgs:", msgs, msgs.length);
       }
+    }
+    else  if(msg.type === 'solverResult'){
+      console.log("DEBUG: Received return message of correct type");
+      const result = msg.result;
+      const outputting = []
+      if (msg.error) {
+        output.textContent = 'Running Solvers failed: ' + msg.error;
+      }else{
+        if(msg.solverId){
+          const target = document.getElementById("res-"+msg.solverId);
+          if(msg.result)outputting.push('Result:'+msg.result.answer);
+          target.textContent = outputting;
+        }
+        else{
+          output.textContent = 'Unknown solver responsed';
+        }
+      }      
+
     }
   });
 
