@@ -8,8 +8,7 @@ export function getWebviewHtml(webview: vscode.Webview, extensionUri: vscode.Uri
 <head>
   <meta charset="UTF-8">
   <style>
-    /* Use VS Code theme variables when available */
-    :root {
+       :root {
       --bg: var(--vscode-editor-background, #ffffff);
       --fg: var(--vscode-editor-foreground, #000000);
       --input-bg: var(--vscode-input-background, #f3f3f3);
@@ -42,13 +41,16 @@ export function getWebviewHtml(webview: vscode.Webview, extensionUri: vscode.Uri
       gap: 16px;
     }
     h2 {
-      margin: 0 0 8px 0;
-      font-size: 1.25rem;
-      font-weight: 500;
+      margin: 0;
+      font-size: 1.5rem;
+      font-weight: 600;
+      border-bottom: 1px solid var(--widget-border);
+      padding-bottom: 4px;
     }
     #filePath {
       font-style: italic;
       color: var(--vscode-descriptionForeground, gray);
+      margin-top: -8px;
       margin-bottom: 12px;
     }
     .field {
@@ -58,9 +60,10 @@ export function getWebviewHtml(webview: vscode.Webview, extensionUri: vscode.Uri
     }
     label {
       font-weight: bold;
+      font-size: 0.9rem;
     }
     textarea {
-      width: 95%;
+      width: 100%;
       min-height: 80px;
       resize: vertical;
       padding: 8px;
@@ -74,7 +77,6 @@ export function getWebviewHtml(webview: vscode.Webview, extensionUri: vscode.Uri
       align-self: flex-start;
       padding: 8px 16px;
       font-size: 1rem;
-      font-family: var(--vscode-editor-font-family, sans-serif);
       background-color: var(--button-bg);
       color: var(--button-fg);
       border: none;
@@ -95,18 +97,53 @@ export function getWebviewHtml(webview: vscode.Webview, extensionUri: vscode.Uri
       cursor: not-allowed;
     }
     #output {
-      /* Use the editor background and foreground for better contrast */
       background-color: var(--vscode-editor-background, #1e1e1e);
       color: var(--vscode-editor-foreground, #d4d4d4);
       border: 1px solid var(--vscode-editorWidget-border, #3c3c3c);
       border-radius: 4px;
       padding: 8px;
       white-space: pre-wrap;
-      max-height: 200px;
+      max-height: 120px;
       overflow-y: auto;
       font-family: var(--vscode-editor-font-family, monospace);
     }
-    /* Responsive adjustments */
+    #allResults {
+      background-color: var(--widget-bg);
+      border: 1px solid var(--widget-border);
+      border-radius: 4px;
+      padding: 12px;
+    }
+    #allResults h3 {
+      margin: 0 0 8px 0;
+      font-size: 1.1rem;
+      font-weight: 500;
+    }
+    #solverResults {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+      gap: 12px;
+    }
+    .solver-item {
+      background-color: var(--bg);
+      border: 1px solid var(--input-border);
+      border-radius: 4px;
+      padding: 8px;
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+    .solver-item strong {
+      font-size: 0.9rem;
+    }
+    .solver-item pre {
+      margin: 0;
+      background: none;
+      border: none;
+      padding: 0;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
     @media (max-width: 600px) {
       body {
         padding: 8px;
@@ -116,7 +153,9 @@ export function getWebviewHtml(webview: vscode.Webview, extensionUri: vscode.Uri
         width: 100%;
         text-align: center;
       }
-    }
+      #solverResults {
+        grid-template-columns: 1fr;
+      }
   </style>
   <title>Polycheck Runner</title>
 </head>
@@ -136,11 +175,11 @@ export function getWebviewHtml(webview: vscode.Webview, extensionUri: vscode.Uri
   <div id="allResults">
     <h3>Solver Results</h3>
     <div id="solverResults">
-      <div><strong>SMTLib AltErgo:</strong> <pre id="res-smtAltErgo">Pending…</pre></div>
-      <div><strong>SMTLib CVC5:</strong> <pre id="res-cvc5">Pending…</pre></div>
-      <div><strong>SMTLib Z3:</strong> <pre id="res-smtZ3">Pending…</pre></div>
-      <div><strong>AltErgoSingle:</strong> <pre id="res-altErgoSingle">Pending…</pre></div>
-      <div><strong>Mona:</strong> <pre id="res-mona">Pending…</pre></div>
+      <div class="solver-item"><strong>SMTLib AltErgo:</strong> <pre id="res-smtAltErgo">Pending…</pre></div>
+      <div class="solver-item"><strong>SMTLib CVC5:</strong> <pre id="res-cvc5">Pending…</pre></div>
+      <div class="solver-item"><strong>SMTLib Z3:</strong> <pre id="res-smtZ3">Pending…</pre></div>
+      <div class="solver-item"><strong>AltErgoSingle:</strong> <pre id="res-altErgoSingle">Pending…</pre></div>
+      <div class="solver-item"><strong>Mona:</strong> <pre id="res-mona">Pending…</pre></div>
     </div>
   </div>
 <script>
