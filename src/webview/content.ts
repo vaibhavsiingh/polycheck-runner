@@ -10,14 +10,14 @@ export function getWebviewHtml(webview: vscode.Webview, extensionUri: vscode.Uri
   <style>
        :root {
       --bg: var(--vscode-editor-background, #ffffff);
-      --fg: var(--vscode-editor-foreground, #000000);
+      --fg: #000000;
       --input-bg: var(--vscode-input-background, #f3f3f3);
-      --input-fg: var(--vscode-input-foreground, #000000);
+      --input-fg: #000000;
       --input-border: var(--vscode-input-border, #cccccc);
       --widget-bg: var(--vscode-editor-widget-background, #f3f3f3);
       --widget-border: var(--vscode-editorWidget-border, #dddddd);
       --button-bg: var(--vscode-button-background, #007acc);
-      --button-fg: var(--vscode-button-foreground, #ffffff);
+      --button-fg: #ffffff;
       --button-hover-bg: var(--vscode-button-hoverBackground, #005a9e);
       --button-disabled-bg: rgba(0, 122, 204, 0.4);
       --button-disabled-fg: rgba(255, 255, 255, 0.4);
@@ -30,7 +30,7 @@ export function getWebviewHtml(webview: vscode.Webview, extensionUri: vscode.Uri
       width: 100%;
       height: 100%;
       background-color: var(--bg);
-      color: var(--fg);
+      
       font-family: var(--vscode-editor-font-family, sans-serif);
       box-sizing: border-box;
     }
@@ -69,7 +69,7 @@ export function getWebviewHtml(webview: vscode.Webview, extensionUri: vscode.Uri
       padding: 8px;
       font-family: var(--vscode-editor-font-family, monospace);
       background-color: var(--input-bg);
-      color: var(--input-fg);
+      color: whitesmoke
       border: 1px solid var(--input-border);
       border-radius: 4px;
     }
@@ -78,7 +78,7 @@ export function getWebviewHtml(webview: vscode.Webview, extensionUri: vscode.Uri
       padding: 8px 16px;
       font-size: 1rem;
       background-color: var(--button-bg);
-      color: var(--button-fg);
+      color: #ffffff;
       border: none;
       border-radius: 4px;
       cursor: pointer;
@@ -98,7 +98,7 @@ export function getWebviewHtml(webview: vscode.Webview, extensionUri: vscode.Uri
     }
     #output {
       background-color: var(--vscode-editor-background, #1e1e1e);
-      color: var(--vscode-editor-foreground, #d4d4d4);
+      
       border: 1px solid var(--vscode-editorWidget-border, #3c3c3c);
       border-radius: 4px;
       padding: 8px;
@@ -135,6 +135,34 @@ export function getWebviewHtml(webview: vscode.Webview, extensionUri: vscode.Uri
     .solver-item strong {
       font-size: 0.9rem;
     }
+    .solver-item {
+      background-color: var(--bg);
+      border: 1px solid var(--input-border);
+      border-radius: 4px;
+      padding: 8px;
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+      transition: background-color 0.2s ease;
+    }
+
+    .solver-item.success {
+      background-color: rgb(132, 244, 87);
+      color: #1f4200;
+    }
+
+    /* Error = red background, white text */
+    .solver-item.error {
+      background-color: rgb(222, 82, 82);
+      color: #ffffff;
+    }
+
+    /* Neutral = pale yellow background, dark-brown text */
+    .solver-item.neutral {
+      background-color: rgb(246, 237, 192);
+      color: #5a4a00;
+    }
+
     .solver-item pre {
       margin: 0;
       background: none;
@@ -175,11 +203,11 @@ export function getWebviewHtml(webview: vscode.Webview, extensionUri: vscode.Uri
   <div id="allResults">
     <h3>Solver Results</h3>
     <div id="solverResults">
-      <div class="solver-item"><strong>SMTLib AltErgo:</strong> <pre id="res-smtAltErgo">Pending…</pre></div>
-      <div class="solver-item"><strong>SMTLib CVC5:</strong> <pre id="res-cvc5">Pending…</pre></div>
-      <div class="solver-item"><strong>SMTLib Z3:</strong> <pre id="res-smtZ3">Pending…</pre></div>
-      <div class="solver-item"><strong>AltErgoSingle:</strong> <pre id="res-altErgoSingle">Pending…</pre></div>
-      <div class="solver-item"><strong>Mona:</strong> <pre id="res-mona">Pending…</pre></div>
+      <div id="item-smtAltErgo" class="solver-item "><strong>SMTLib AltErgo:</strong> <pre id="res-smtAltErgo">Pending…</pre></div>
+      <div id="item-cvc5" class="solver-item"><strong>SMTLib CVC5:</strong> <pre id="res-cvc5">Pending…</pre></div>
+      <div id="item-smtZ3" class="solver-item"><strong>SMTLib Z3:</strong> <pre id="res-smtZ3">Pending…</pre></div>
+      <div id="item-altErgoSingle" class="solver-item"><strong>AltErgoSingle:</strong> <pre id="res-altErgoSingle">Pending…</pre></div>
+      <div id="item-mona" class="solver-item"><strong>Mona:</strong> <pre id="res-mona">Pending…</pre></div>
     </div>
   </div>
 <script>
@@ -189,6 +217,15 @@ export function getWebviewHtml(webview: vscode.Webview, extensionUri: vscode.Uri
   const runBtn = document.getElementById('runBtn');
   const preTA = document.getElementById('preText');
   const postTA = document.getElementById('postText');
+
+   function resetSolverItems() {
+      document.querySelectorAll('.solver-item').forEach(item => {
+        item.classList.remove('success', 'error', 'neutral');
+        const pre = item.querySelector('pre');
+        pre.textContent = 'Pending…';
+      });
+    }
+
 
   let parseTimer;
   console.log("DEBUG: Reached Script");
@@ -222,6 +259,7 @@ export function getWebviewHtml(webview: vscode.Webview, extensionUri: vscode.Uri
 
   // 3) run verification
   runBtn.addEventListener('click', async () => {
+    resetSolverItems();
     runBtn.disabled = true;
     output.textContent = 'Verifying…';
     vscode.postMessage({
@@ -254,22 +292,35 @@ export function getWebviewHtml(webview: vscode.Webview, extensionUri: vscode.Uri
       }
     }
     else  if(msg.type === 'solverResult'){
-      console.log("DEBUG: Received return message of correct type");
-      const result = msg.result;
-      const outputting = []
-      if (msg.error) {
-        output.textContent = 'Running Solvers failed: ' + msg.error;
-      }else{
-        if(msg.solverId){
-          const target = document.getElementById("res-"+msg.solverId);
-          if(msg.result)outputting.push('Result:'+msg.result.answer);
-          target.textContent = outputting;
-        }
-        else{
-          output.textContent = 'Unknown solver responsed';
-        }
-      }      
+      if (msg.error){
+          output.textContent = 'Running Solvers failed: ' + msg.error;
+          return;
+      }
+      if (!msg.solverId) {
+        output.textContent = 'Unknown solver responded';
+        return;
+      }
 
+      const item = document.getElementById("item-"+msg.solverId);
+      const pre  = document.getElementById("res-"+msg.solverId);
+      console.log("msg","res-"+msg.solverId);
+      console.log(item)
+      // clear previous state
+      item.classList.remove('success', 'error', 'neutral');
+
+      const answer = msg.result.answer;
+      if (answer === 'Unsat') {
+        pre.textContent = "✅ " +answer;
+        item.classList.add('success');
+      } else if (answer === 'Sat') {
+        pre.textContent = "❌ "+answer;
+        item.classList.add('error');
+      } else if (answer === 'Unknown') {
+        pre.textContent = "🤷 "+answer;
+        item.classList.add('neutral');
+      } else {
+        pre.textContent = "🪲 "+answer;
+      }
     }
   });
 
